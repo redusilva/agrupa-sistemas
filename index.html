@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Status de Serviços</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen font-sans">
+
+    <div class="w-full max-w-2xl p-8 space-y-6 bg-gray-800 rounded-xl shadow-lg">
+        <h1 class="text-3xl font-bold text-center text-cyan-400">Verificador de Status de Serviços</h1>
+        <div id="service-list" class="space-y-4">
+        </div>
+    </div>
+
+    <script>
+        const services = [
+            {
+                name: 'Backend Principal',
+                pingUrl: 'https://final-ifg-backend.onrender.com',
+                docsUrl: 'https://final-ifg-backend.onrender.com/docs'
+            },
+            {
+                name: 'Serviço de Login',
+                pingUrl: 'https://sistema-de-login-final.onrender.com',
+                docsUrl: 'https://sistema-de-login-final.onrender.com/docs'
+            }
+        ];
+
+        const serviceListContainer = document.getElementById('service-list');
+        const intervalIds = [];
+
+        const createServiceItem = (service, index) => {
+            return `
+        <div id="service-${index}" class="p-4 bg-gray-700 rounded-lg flex items-center justify-between transition-all duration-300">
+          <div class="flex items-center space-x-4">
+            <div id="status-indicator-${index}" class="w-4 h-4 rounded-full bg-yellow-500 animate-pulse"></div>
+            <span class="font-medium text-lg">${service.name}</span>
+          </div>
+          <div class="flex items-center space-x-4">
+            <span id="status-text-${index}" class="text-yellow-400 font-semibold">Verificando...</span>
+            <a href="${service.docsUrl}" target="_blank" id="docs-button-${index}" class="hidden px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded-md font-bold transition-colors">
+              Documentação
+            </a>
+          </div>
+        </div>
+      `;
+        };
+
+        const checkServiceStatus = async (service, index) => {
+            const indicator = document.getElementById(`status-indicator-${index}`);
+            const statusText = document.getElementById(`status-text-${index}`);
+            const button = document.getElementById(`docs-button-${index}`);
+
+            try {
+                // Usamos 'no-cors' pois o navegador bloquearia a leitura da resposta de outro domínio.
+                // O sucesso aqui significa que o servidor respondeu, o que é suficiente para nossa verificação.
+                await fetch(service.pingUrl, { mode: 'no-cors' });
+
+                indicator.classList.remove('bg-yellow-500', 'animate-pulse');
+                indicator.classList.add('bg-green-500');
+
+                statusText.textContent = 'Online';
+                statusText.classList.remove('text-yellow-400');
+                statusText.classList.add('text-green-400');
+
+                button.classList.remove('hidden');
+
+                // Para de verificar este serviço, pois já está online
+                clearInterval(intervalIds[index]);
+
+            } catch (error) {
+                // O fetch falha se houver um erro de rede (servidor offline, DNS, etc.)
+                indicator.classList.remove('bg-yellow-500', 'animate-pulse');
+                indicator.classList.add('bg-red-500');
+
+                statusText.textContent = 'Offline';
+                statusText.classList.remove('text-yellow-400');
+                statusText.classList.add('text-red-400');
+            }
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            if (services.length === 0) {
+                serviceListContainer.innerHTML = '<p class="text-center text-gray-400">Nenhum serviço para verificar.</p>';
+                return;
+            }
+
+            services.forEach((service, index) => {
+                serviceListContainer.innerHTML += createServiceItem(service, index);
+            });
+
+            services.forEach((service, index) => {
+                checkServiceStatus(service, index); // Verifica imediatamente na primeira vez
+                const intervalId = setInterval(() => checkServiceStatus(service, index), 5000);
+                intervalIds[index] = intervalId;
+            });
+        });
+    </script>
+
+</body>
+
+</html>
